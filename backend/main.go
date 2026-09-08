@@ -2,12 +2,12 @@ package main
 
 import (
 	"log"
+
+	"github.com/gin-gonic/gin"
 	"school-management/config"
 	"school-management/models"
 	"school-management/routes"
 	"school-management/seed"
-
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -51,7 +51,14 @@ func main() {
 
 	// Daftarkan routes
 	routes.AuthRoutes(router)
-	routes.UserRoutes(router) // Tambahkan baris ini
+	routes.UserRoutes(router)
+	routes.TeacherRoutes(router)
+	routes.StudentRoutes(router)
+	routes.ClassRoutes(router)
+	routes.SubjectRoutes(router)
+	routes.MaterialRoutes(router)
+	routes.AssignmentRoutes(router)
+	routes.SubmissionRoutes(router) // <-- BARU
 
 	// Jalankan server
 	log.Println("Server berjalan di http://localhost:8080")
