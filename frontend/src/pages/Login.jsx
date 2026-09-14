@@ -20,22 +20,21 @@ export default function Login() {
 
       const { token, user } = response.data;
 
-      // Cek apakah yang login adalah ADMIN
       if (user.Role !== 'ADMIN') {
         setError('Akses ditolak! Halaman ini khusus untuk Admin.');
         setLoading(false);
         return;
       }
 
-      // Simpan token ke localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
       alert('Login berhasil! Selamat datang Admin.');
-      // Nanti kita arahkan ke Dashboard Admin
+      
+      // Refresh halaman agar App.jsx membaca token baru dan merender Dashboard
+      window.location.reload();
     } catch (err) {
       setError(err.response?.data?.error || 'Terjadi kesalahan pada server');
-    } finally {
       setLoading(false);
     }
   };
