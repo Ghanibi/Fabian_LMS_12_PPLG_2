@@ -1,0 +1,6 @@
+{
+  "name": "Fabian LMS - School Management",
+  "description": "School Management and Learning Management System (LMS) API and Dashboard with class organization, teachers, students, subjects, materials, assignments, and submission grading.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

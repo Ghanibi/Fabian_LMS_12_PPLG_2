@@ -1,0 +1,20 @@
+{
+  "name": "fabian-lms-12-pplg-2",
+  "version": "1.0.0",
+  "description": "School Management & Learning Management System (LMS) - SMK 12 PPLG 2",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "node -c server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

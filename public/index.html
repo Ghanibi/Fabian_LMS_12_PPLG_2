@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fabian LMS - School Management</title>
+  <meta name="description" content="School Management & Learning Management System for SMK 12 PPLG 2 with Classes, Teachers, Students, Subjects, Assignments, and Submissions.">
+  <meta property="og:title" content="Fabian LMS - School Management">
+  <meta property="og:description" content="School Management & Learning Management System for SMK 12 PPLG 2 with Classes, Teachers, Students, Subjects, Assignments, and Submissions.">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+
+  <!-- TOP BAR -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xl shadow-sm">
+          FL
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900">Fabian LMS</h1>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+              12 PPLG 2
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 hidden sm:block">School Management & Learning Platform</p>
+        </div>
+      </div>
+
+      <!-- Auth State & Quick Login -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <div id="authStatusContainer" class="flex items-center space-x-2">
+          <!-- Populated by JS -->
+        </div>
+        
+        <div class="hidden md:flex items-center space-x-1 bg-slate-100 p-1 rounded-lg text-xs font-medium">
+          <span class="px-2 text-slate-500">Quick Test:</span>
+          <button onclick="quickLogin('admin@school.com', 'admin123')" class="px-2.5 py-1 rounded bg-white hover:bg-slate-200 text-slate-700 shadow-xs transition">Admin</button>
+          <button onclick="quickLogin('teacher@school.com', 'teacher123')" class="px-2.5 py-1 rounded bg-white hover:bg-slate-200 text-slate-700 shadow-xs transition">Guru</button>
+          <button onclick="quickLogin('student@school.com', 'student123')" class="px-2.5 py-1 rounded bg-white hover:bg-slate-200 text-slate-700 shadow-xs transition">Siswa</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN NAVIGATION TABS -->
+  <div class="bg-white border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav class="flex space-x-2 sm:space-x-6 overflow-x-auto custom-scrollbar py-2 text-sm font-medium" id="navTabs">
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-3 py-2 rounded-lg text-emerald-700 bg-emerald-50 flex items-center space-x-1.5 whitespace-nowrap">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span>Dashboard</span>
+        </button>
+        <button onclick="switchTab('classes')" id="tab-classes" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap">
+          <i data-lucide="school" class="w-4 h-4"></i>
+          <span>Kelas (<span id="badgeClassCount">54</span>)</span>
+        </button>
+        <button onclick="switchTab('teachers')" id="tab-teachers" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap">
+          <i data-lucide="user-check" class="w-4 h-4"></i>
+          <span>Guru</span>
+        </button>
+        <button onclick="switchTab('students')" id="tab-students" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          <span>Siswa</span>
+        </button>
+        <button onclick="switchTab('subjects')" id="tab-subjects" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap">
+          <i data-lucide="book-open" class="w-4 h-4"></i>
+          <span>Mata Pelajaran</span>
+        </button>
+        <button onclick="switchTab('materials')" id="tab-materials" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap">
+          <i data-lucide="file-text" class="w-4 h-4"></i>
+          <span>Materi</span>
+        </button>
+        <button onclick="switchTab('assignments')" id="tab-assignments" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap">
+          <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+          <span>Tugas</span>
+        </button>
+        <button onclick="switchTab('submissions')" id="tab-submissions" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap">
+          <i data-lucide="check-circle" class="w-4 h-4"></i>
+          <span>Pengumpulan</span>
+        </button>
+        <button onclick="switchTab('api')" id="tab-api" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap">
+          <i data-lucide="terminal" class="w-4 h-4"></i>
+          <span>API Tester</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- CONTENT AREA -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+
+    <!-- Role alert notice if permission restricted -->
+    <div id="roleNotice" class="hidden mb-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="shield-alert" class="w-5 h-5 text-amber-600"></i>
+        <span id="roleNoticeText">Fitur ini memerlukan hak akses role khusus.</span>
+      </div>
+      <button onclick="quickLogin('admin@school.com', 'admin123')" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium px-3 py-1.5 rounded-lg transition">
+        Login sebagai Admin
+      </button>
+    </div>
+
+    <!-- 1. TAB: DASHBOARD -->
+    <section id="view-dashboard" class="space-y-6">
+      <div class="bg-gradient-to-r from-emerald-800 to-teal-900 rounded-2xl p-6 sm:p-8 text-white shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div>
+          <span class="inline-block px-3 py-1 bg-emerald-700/60 backdrop-blur-sm rounded-full text-xs font-semibold text-emerald-200 mb-3">
+            SMK Negeri - Tahun Ajaran Aktif
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Selamat Datang di Fabian LMS</h2>
+          <p class="text-emerald-100 text-sm sm:text-base mt-2 max-w-xl">
+            Sistem manajemen sekolah dan pembelajaran berbasis REST API dengan 54 kelas SMK jurusan PPLG, DKV, TJKT, PEMASARAN, dan MPLB.
+          </p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <button onclick="switchTab('classes')" class="px-4 py-2.5 bg-white text-emerald-900 hover:bg-emerald-50 rounded-xl font-semibold text-sm shadow-sm transition text-center">
+            Kelola Kelas
+          </button>
+          <button onclick="switchTab('api')" class="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-500 rounded-xl font-semibold text-sm transition text-center">
+            Buka API Tester
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-500">Total Kelas</span>
+            <div class="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><i data-lucide="school" class="w-4 h-4"></i></div>
+          </div>
+          <p class="text-2xl font-bold text-slate-900 mt-2" id="statClasses">54</p>
+          <span class="text-xs text-slate-500">Kelas 10, 11, 12 SMK</span>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-500">Guru Terdaftar</span>
+            <div class="p-2 bg-blue-50 text-blue-600 rounded-lg"><i data-lucide="user-check" class="w-4 h-4"></i></div>
+          </div>
+          <p class="text-2xl font-bold text-slate-900 mt-2" id="statTeachers">1</p>
+          <span class="text-xs text-slate-500">Guru Produktif PPLG</span>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-500">Siswa Aktif</span>
+            <div class="p-2 bg-purple-50 text-purple-600 rounded-lg"><i data-lucide="users" class="w-4 h-4"></i></div>
+          </div>
+          <p class="text-2xl font-bold text-slate-900 mt-2" id="statStudents">1</p>
+          <span class="text-xs text-slate-500">Fabian Nanday (12 PPLG 2)</span>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-500">Mata Pelajaran</span>
+            <div class="p-2 bg-amber-50 text-amber-600 rounded-lg"><i data-lucide="book-open" class="w-4 h-4"></i></div>
+          </div>
+          <p class="text-2xl font-bold text-slate-900 mt-2" id="statSubjects">4</p>
+          <span class="text-xs text-slate-500">PPLG-01 s/d PPLG-04</span>
+        </div>
+      </div>
+
+      <!-- Quick Info / Architecture Card -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
+          <h3 class="font-bold text-base text-slate-900 mb-4 flex items-center space-x-2">
+            <i data-lucide="server" class="w-5 h-5 text-emerald-600"></i>
+            <span>Arsitektur & API Endpoints</span>
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span class="font-semibold text-slate-700 block mb-1">🔐 Auth & User Management</span>
+              <p class="text-slate-500"><code>POST /api/auth/login</code></p>
+              <p class="text-slate-500"><code>GET /api/auth/me</code></p>
+              <p class="text-slate-500"><code>CRUD /api/users</code> (Role: ADMIN)</p>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span class="font-semibold text-slate-700 block mb-1">🏫 Akademik & Kelas</span>
+              <p class="text-slate-500"><code>CRUD /api/classes</code></p>
+              <p class="text-slate-500"><code>CRUD /api/teachers</code></p>
+              <p class="text-slate-500"><code>CRUD /api/students</code></p>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span class="font-semibold text-slate-700 block mb-1">📚 Kurikulum & Materi</span>
+              <p class="text-slate-500"><code>CRUD /api/subjects</code></p>
+              <p class="text-slate-500"><code>CRUD /api/materials</code></p>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span class="font-semibold text-slate-700 block mb-1">📝 Tugas & Penilaian</span>
+              <p class="text-slate-500"><code>CRUD /api/assignments</code></p>
+              <p class="text-slate-500"><code>GET /api/submissions</code></p>
+              <p class="text-slate-500"><code>PUT /api/submissions/:id/grade</code></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <h3 class="font-bold text-base text-slate-900 mb-3 flex items-center space-x-2">
+              <i data-lucide="key" class="w-5 h-5 text-emerald-600"></i>
+              <span>Kredensial Login Default</span>
+            </h3>
+            <div class="space-y-3 text-xs">
+              <div class="p-2.5 bg-slate-50 rounded-lg">
+                <span class="font-bold text-emerald-700 block">Admin User</span>
+                <p class="text-slate-600">Email: <code>admin@school.com</code></p>
+                <p class="text-slate-600">Password: <code>admin123</code></p>
+              </div>
+              <div class="p-2.5 bg-slate-50 rounded-lg">
+                <span class="font-bold text-blue-700 block">Guru (Teacher)</span>
+                <p class="text-slate-600">Email: <code>teacher@school.com</code></p>
+                <p class="text-slate-600">Password: <code>teacher123</code></p>
+              </div>
+              <div class="p-2.5 bg-slate-50 rounded-lg">
+                <span class="font-bold text-purple-700 block">Siswa (Student)</span>
+                <p class="text-slate-600">Email: <code>student@school.com</code></p>
+                <p class="text-slate-600">Password: <code>student123</code></p>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+            JWT Token masa berlaku 24 jam dengan HMAC-SHA256.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. TAB: KELAS (CLASSES) -->
+    <section id="view-classes" class="hidden space-y-4">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Daftar Kelas SMK</h2>
+          <p class="text-xs text-slate-500">Semua kelas yang terdaftar dari seeder SMK (10, 11, 12)</p>
+        </div>
+        <div class="flex items-center space-x-2 w-full sm:w-auto">
+          <input type="text" id="searchClassInput" oninput="filterClasses()" placeholder="Cari nama kelas atau jurusan..." class="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none w-full sm:w-64">
+          <select id="filterGradeSelect" onchange="filterClasses()" class="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <option value="ALL">Semua Tingkat</option>
+            <option value="10">Kelas 10</option>
+            <option value="11">Kelas 11</option>
+            <option value="12">Kelas 12</option>
+          </select>
+          <button onclick="openModal('modalAddClass')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-xs flex items-center space-x-1 whitespace-nowrap">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Tambah Kelas</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <tr>
+                <th class="px-4 py-3">ID</th>
+                <th class="px-4 py-3">Nama Kelas</th>
+                <th class="px-4 py-3">Jenjang</th>
+                <th class="px-4 py-3">Tingkat</th>
+                <th class="px-4 py-3">Jurusan</th>
+                <th class="px-4 py-3">Tipe</th>
+                <th class="px-4 py-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="classesTableBody" class="divide-y divide-slate-200 text-slate-700">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. TAB: GURU (TEACHERS) -->
+    <section id="view-teachers" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Daftar Guru Pengajar</h2>
+          <p class="text-xs text-slate-500">Manajemen akun dan profil guru</p>
+        </div>
+        <button onclick="openModal('modalAddTeacher')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-xs flex items-center space-x-1">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Tambah Guru</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="teachersListContainer">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- 4. TAB: SISWA (STUDENTS) -->
+    <section id="view-students" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Daftar Siswa</h2>
+          <p class="text-xs text-slate-500">Data siswa aktif beserta kelas yang diikuti</p>
+        </div>
+        <button onclick="openModal('modalAddStudent')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-xs flex items-center space-x-1">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Tambah Siswa</span>
+        </button>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <tr>
+                <th class="px-4 py-3">Nama Siswa</th>
+                <th class="px-4 py-3">NIS / NISN</th>
+                <th class="px-4 py-3">Kelas</th>
+                <th class="px-4 py-3">Email & Kontak</th>
+                <th class="px-4 py-3">Alamat</th>
+                <th class="px-4 py-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="studentsTableBody" class="divide-y divide-slate-200 text-slate-700">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. TAB: MATA PELAJARAN (SUBJECTS) -->
+    <section id="view-subjects" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Mata Pelajaran</h2>
+          <p class="text-xs text-slate-500">Kurikulum dan kode mapel kejuruan</p>
+        </div>
+        <button onclick="openModal('modalAddSubject')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-xs flex items-center space-x-1">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Tambah Mata Pelajaran</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="subjectsListContainer">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- 6. TAB: MATERI (MATERIALS) -->
+    <section id="view-materials" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Materi Pembelajaran</h2>
+          <p class="text-xs text-slate-500">Modul, dokumen pendukung, dan materi ajar</p>
+        </div>
+        <button onclick="openModal('modalAddMaterial')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-xs flex items-center space-x-1">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Unggah Materi</span>
+        </button>
+      </div>
+
+      <div class="space-y-3" id="materialsListContainer">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- 7. TAB: TUGAS (ASSIGNMENTS) -->
+    <section id="view-assignments" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Daftar Tugas</h2>
+          <p class="text-xs text-slate-500">Tugas aktif dan batas waktu pengumpulan</p>
+        </div>
+        <button onclick="openModal('modalAddAssignment')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-xs flex items-center space-x-1">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Buat Tugas Baru</span>
+        </button>
+      </div>
+
+      <div class="space-y-4" id="assignmentsListContainer">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- 8. TAB: PENGUMPULAN (SUBMISSIONS) -->
+    <section id="view-submissions" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Pengumpulan Tugas Siswa</h2>
+          <p class="text-xs text-slate-500">Review hasil pengerjaan tugas dan berikan nilai</p>
+        </div>
+        <button onclick="openModal('modalSubmitAssignment')" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg shadow-xs flex items-center space-x-1">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+          <span>Kumpulkan Tugas (Siswa)</span>
+        </button>
+      </div>
+
+      <div class="space-y-3" id="submissionsListContainer">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- 9. TAB: API TESTER -->
+    <section id="view-api" class="hidden space-y-6">
+      <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
+        <h2 class="text-xl font-bold text-slate-900 mb-2 flex items-center space-x-2">
+          <i data-lucide="terminal" class="w-5 h-5 text-emerald-600"></i>
+          <span>Interactive REST API Explorer</span>
+        </h2>
+        <p class="text-xs text-slate-500 mb-6">
+          Uji langsung semua endpoint Go Gin yang telah dimigrasikan ke Express Node.js. Header otorisasi JWT otomatis disisipkan jika sedang login.
+        </p>
+
+        <!-- Quick API Buttons -->
+        <div class="mb-4">
+          <span class="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-2">Pilih Endpoint Cepat:</span>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button onclick="setApiRequest('GET', '/api/classes', null)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono">GET /api/classes</button>
+            <button onclick="setApiRequest('GET', '/api/students', null)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono">GET /api/students</button>
+            <button onclick="setApiRequest('GET', '/api/teachers', null)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono">GET /api/teachers</button>
+            <button onclick="setApiRequest('GET', '/api/subjects', null)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono">GET /api/subjects</button>
+            <button onclick="setApiRequest('GET', '/api/materials', null)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono">GET /api/materials</button>
+            <button onclick="setApiRequest('GET', '/api/assignments', null)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono">GET /api/assignments</button>
+            <button onclick="setApiRequest('GET', '/api/submissions', null)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono">GET /api/submissions</button>
+            <button onclick="setApiRequest('GET', '/api/auth/me', null)" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-mono">GET /api/auth/me</button>
+            <button onclick="setApiRequest('POST', '/api/auth/login', JSON.stringify({ email: 'admin@school.com', password: 'admin123' }, null, 2))" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-mono">POST /api/auth/login</button>
+            <button onclick="setApiRequest('GET', '/api/health', null)" class="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 font-mono">GET /api/health</button>
+          </div>
+        </div>
+
+        <!-- Request Form -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <div class="flex gap-2">
+              <select id="apiMethod" class="px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold bg-slate-50 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+              <input type="text" id="apiUrl" value="/api/classes" class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <button onclick="executeApiRequest()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-lg shadow-xs flex items-center space-x-1.5">
+                <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+                <span>Kirim</span>
+              </button>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Request Body (JSON):</label>
+              <textarea id="apiBody" rows="6" placeholder="{}" class="w-full font-mono text-xs p-3 bg-slate-900 text-emerald-400 rounded-lg border border-slate-800 focus:outline-none"></textarea>
+            </div>
+
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+              <span class="font-bold text-slate-700 block mb-1">Status Token JWT Saat Ini:</span>
+              <p class="text-slate-600 truncate" id="apiTokenStatus">Belum login (Tidak menyertakan header Bearer)</p>
+            </div>
+          </div>
+
+          <!-- Response Output -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs font-semibold text-slate-700">Response Data:</label>
+              <span id="apiResponseStatus" class="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">-</span>
+            </div>
+            <pre id="apiResponseOutput" class="w-full h-80 font-mono text-xs p-3 bg-slate-900 text-slate-100 rounded-lg border border-slate-800 overflow-auto custom-scrollbar">{ "message": "Tekan tombol Kirim untuk menjalankan request" }</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODALS -->
+
+  <!-- Modal: Login -->
+  <div id="modalLogin" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-lg text-slate-900">Masuk Akun</h3>
+        <button onclick="closeModal('modalLogin')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="handleLoginForm(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Email</label>
+          <input type="email" id="loginEmail" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="admin@school.com">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Password</label>
+          <input type="password" id="loginPassword" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="••••••••">
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition shadow-xs">
+          Masuk
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Class -->
+  <div id="modalAddClass" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-lg text-slate-900">Tambah Kelas Baru</h3>
+        <button onclick="closeModal('modalAddClass')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="handleAddClass(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Nama Kelas</label>
+          <input type="text" id="newClassName" required placeholder="Contoh: 12 PPLG 3" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Tingkat (Grade)</label>
+            <select id="newClassGrade" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <option value="10">10</option>
+              <option value="11">11</option>
+              <option value="12" selected>12</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Jurusan (Major)</label>
+            <input type="text" id="newClassMajor" placeholder="PPLG" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+        </div>
+        <div class="flex items-center space-x-2 pt-2">
+          <input type="checkbox" id="newClassIsPlus" class="w-4 h-4 text-emerald-600 rounded">
+          <label for="newClassIsPlus" class="text-slate-700 font-medium">Kelas Unggulan (PLUS)</label>
+        </div>
+        <div class="pt-3">
+          <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition shadow-xs">
+            Simpan Kelas
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Teacher -->
+  <div id="modalAddTeacher" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-lg text-slate-900">Tambah Guru Baru</h3>
+        <button onclick="closeModal('modalAddTeacher')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="handleAddTeacher(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Nama Lengkap & Gelar</label>
+          <input type="text" id="newTeacherName" required placeholder="Ahmad Fauzi, S.T" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">NIP</label>
+          <input type="text" id="newTeacherNip" required placeholder="199001012015011001" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Email</label>
+            <input type="email" id="newTeacherEmail" required placeholder="guru@school.com" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Password</label>
+            <input type="password" id="newTeacherPassword" required minlength="6" placeholder="••••••••" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Nomor Telepon</label>
+          <input type="text" id="newTeacherPhone" placeholder="08123456789" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Alamat</label>
+          <textarea id="newTeacherAddress" rows="2" placeholder="Alamat rumah guru..." class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+        </div>
+        <div class="pt-3">
+          <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition shadow-xs">
+            Simpan Guru
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Student -->
+  <div id="modalAddStudent" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-lg text-slate-900">Tambah Siswa Baru</h3>
+        <button onclick="closeModal('modalAddStudent')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="handleAddStudent(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Nama Siswa</label>
+          <input type="text" id="newStudentName" required placeholder="Nama lengkap siswa" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">NIS</label>
+            <input type="text" id="newStudentNis" required placeholder="222310001" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Kelas</label>
+            <select id="newStudentClassId" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <!-- Options populated by JS -->
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Email</label>
+            <input type="email" id="newStudentEmail" required placeholder="siswa@school.com" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Password</label>
+            <input type="password" id="newStudentPassword" required minlength="6" placeholder="••••••••" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Nomor Telepon / WhatsApp</label>
+          <input type="text" id="newStudentPhone" placeholder="08987654321" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div class="pt-3">
+          <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition shadow-xs">
+            Simpan Siswa
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Subject -->
+  <div id="modalAddSubject" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-lg text-slate-900">Tambah Mata Pelajaran</h3>
+        <button onclick="closeModal('modalAddSubject')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="handleAddSubject(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Nama Mapel</label>
+          <input type="text" id="newSubjectName" required placeholder="Contoh: Keamanan Jaringan" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Kode Mapel</label>
+          <input type="text" id="newSubjectCode" required placeholder="TJKT-05" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div class="pt-3">
+          <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition shadow-xs">
+            Simpan Mapel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Material -->
+  <div id="modalAddMaterial" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-lg text-slate-900">Unggah Materi Pembelajaran</h3>
+        <button onclick="closeModal('modalAddMaterial')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="handleAddMaterial(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Judul Materi</label>
+          <input type="text" id="newMaterialTitle" required placeholder="Contoh: Modul 2 - Relasi Database SQL" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Deskripsi Ringkas</label>
+          <textarea id="newMaterialDesc" rows="2" placeholder="Penjelasan isi materi..." class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">File URL / Tautan Materi</label>
+          <input type="url" id="newMaterialUrl" placeholder="https://..." class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div class="pt-3">
+          <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition shadow-xs">
+            Simpan Materi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Assignment -->
+  <div id="modalAddAssignment" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-lg text-slate-900">Buat Tugas Baru</h3>
+        <button onclick="closeModal('modalAddAssignment')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="handleAddAssignment(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Judul Tugas</label>
+          <input type="text" id="newAssignmentTitle" required placeholder="Contoh: Tugas Praktik 2 - API Testing" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Deskripsi & Instruksi</label>
+          <textarea id="newAssignmentDesc" rows="3" placeholder="Instruksi pengerjaan tugas..." class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Batas Waktu (Deadline)</label>
+            <input type="datetime-local" id="newAssignmentDueDate" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Nilai Maksimal</label>
+            <input type="number" id="newAssignmentMaxScore" value="100" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+        </div>
+        <div class="pt-3">
+          <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition shadow-xs">
+            Terbitkan Tugas
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Submit Assignment -->
+  <div id="modalSubmitAssignment" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-lg text-slate-900">Kumpulkan Tugas</h3>
+        <button onclick="closeModal('modalSubmitAssignment')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="handleSubmitAssignment(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Pilih Tugas</label>
+          <select id="submitAssignmentId" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Catatan Pengumpulan / Teks Jawaban</label>
+          <textarea id="submitText" rows="3" placeholder="Tuliskan link repo github, deskripsi solusi, dsb..." class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"></textarea>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Tautan Lampiran / File URL</label>
+          <input type="url" id="submitFileUrl" placeholder="https://..." class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none">
+        </div>
+        <div class="pt-3">
+          <button type="submit" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition shadow-xs">
+            Kirim Tugas
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Grade Submission -->
+  <div id="modalGradeSubmission" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-lg text-slate-900">Penilaian Tugas</h3>
+        <button onclick="closeModal('modalGradeSubmission')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="handleGradeSubmission(event)" class="space-y-3 text-sm">
+        <input type="hidden" id="gradeSubmissionId">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Nilai (0 - 100)</label>
+          <input type="number" id="gradeScore" min="0" max="100" required placeholder="85" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Catatan / Feedback Guru</label>
+          <textarea id="gradeFeedback" rows="3" placeholder="Umpan balik untuk siswa..." class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+        </div>
+        <div class="pt-3">
+          <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition shadow-xs">
+            Simpan Nilai
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <script>
+    // State
+    let authToken = localStorage.getItem('fabian_lms_token') || null;
+    let currentUser = null;
+    let cachedClasses = [];
+    let cachedTeachers = [];
+    let cachedStudents = [];
+    let cachedSubjects = [];
+    let cachedMaterials = [];
+    let cachedAssignments = [];
+    let cachedSubmissions = [];
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', async () => {
+      lucide.createIcons();
+      await checkAuth();
+      await loadInitialData();
+    });
+
+    function showToast(msg, type = 'success') {
+      const toast = document.createElement('div');
+      const isSuccess = type === 'success';
+      toast.className = `pointer-events-auto flex items-center space-x-2 px-4 py-3 rounded-xl shadow-lg text-sm font-medium transition-all transform duration-300 ${
+        isSuccess ? 'bg-emerald-900 text-emerald-100 border border-emerald-700' : 'bg-red-900 text-red-100 border border-red-700'
+      }`;
+      toast.innerHTML = `
+        <i data-lucide="${isSuccess ? 'check-circle' : 'alert-circle'}" class="w-4 h-4"></i>
+        <span>${msg}</span>
+      `;
+      document.getElementById('toastContainer').appendChild(toast);
+      lucide.createIcons();
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Helper for API fetch
+    async function apiFetch(endpoint, options = {}) {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      };
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      const res = await fetch(endpoint, { ...options, headers });
+      const data = await res.json().catch(() => ({}));
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    // Auth Check
+    async function checkAuth() {
+      if (!authToken) {
+        currentUser = null;
+        renderAuthUI();
+        return;
+      }
+      const res = await apiFetch('/api/auth/me');
+      if (res.ok) {
+        currentUser = res.data;
+      } else {
+        authToken = null;
+        currentUser = null;
+        localStorage.removeItem('fabian_lms_token');
+      }
+      renderAuthUI();
+    }
+
+    function renderAuthUI() {
+      const container = document.getElementById('authStatusContainer');
+      const tokenStatusEl = document.getElementById('apiTokenStatus');
+      const roleNotice = document.getElementById('roleNotice');
+
+      if (currentUser) {
+        const roleColors = {
+          ADMIN: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+          TEACHER: 'bg-blue-100 text-blue-800 border-blue-300',
+          STUDENT: 'bg-purple-100 text-purple-800 border-purple-300'
+        };
+        const badgeClass = roleColors[currentUser.role] || 'bg-slate-100 text-slate-800';
+
+        container.innerHTML = `
+          <div class="flex items-center space-x-2">
+            <div class="text-right hidden sm:block">
+              <span class="block text-xs font-bold text-slate-800 leading-none">${currentUser.name}</span>
+              <span class="text-[10px] text-slate-500">${currentUser.email}</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-xs font-semibold border ${badgeClass}">
+              ${currentUser.role}
+            </span>
+            <button onclick="logout()" title="Keluar" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+        if (tokenStatusEl) {
+          tokenStatusEl.innerHTML = `<span class="text-emerald-600 font-semibold">Aktif</span>: ${currentUser.name} (${currentUser.role})`;
+        }
+        if (roleNotice) roleNotice.classList.add('hidden');
+      } else {
+        container.innerHTML = `
+          <button onclick="openModal('modalLogin')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center space-x-1">
+            <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
+            <span>Masuk</span>
+          </button>
+        `;
+        if (tokenStatusEl) {
+          tokenStatusEl.innerText = 'Belum login (Tidak menyertakan header Bearer)';
+        }
+      }
+      lucide.createIcons();
+    }
+
+    async function quickLogin(email, password) {
+      const res = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+      });
+      if (res.ok) {
+        authToken = res.data.token;
+        currentUser = {
+          user_id: res.data.user.ID,
+          name: res.data.user.Name,
+          email: res.data.user.Email,
+          role: res.data.user.Role
+        };
+        localStorage.setItem('fabian_lms_token', authToken);
+        showToast(`Berhasil masuk sebagai ${currentUser.name} (${currentUser.role})`);
+        renderAuthUI();
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Login gagal', 'error');
+      }
+    }
+
+    async function handleLoginForm(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      await quickLogin(email, password);
+      closeModal('modalLogin');
+    }
+
+    function logout() {
+      authToken = null;
+      currentUser = null;
+      localStorage.removeItem('fabian_lms_token');
+      renderAuthUI();
+      showToast('Berhasil keluar akun');
+    }
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      const views = ['dashboard', 'classes', 'teachers', 'students', 'subjects', 'materials', 'assignments', 'submissions', 'api'];
+      views.forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        const btn = document.getElementById(`tab-${v}`);
+        if (v === tabId) {
+          el.classList.remove('hidden');
+          btn.className = 'tab-btn px-3 py-2 rounded-lg text-emerald-700 bg-emerald-50 flex items-center space-x-1.5 whitespace-nowrap font-semibold';
+        } else {
+          el.classList.add('hidden');
+          btn.className = 'tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap';
+        }
+      });
+      lucide.createIcons();
+    }
+
+    // Modal Control
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    // Load initial data
+    async function loadInitialData() {
+      // Classes
+      const resClasses = await apiFetch('/api/classes');
+      if (resClasses.ok) {
+        cachedClasses = resClasses.data.data || [];
+        document.getElementById('badgeClassCount').innerText = cachedClasses.length;
+        document.getElementById('statClasses').innerText = cachedClasses.length;
+        renderClasses(cachedClasses);
+        populateClassDropdowns(cachedClasses);
+      }
+
+      // Teachers
+      const resTeachers = await apiFetch('/api/teachers');
+      if (resTeachers.ok) {
+        cachedTeachers = resTeachers.data.data || [];
+        document.getElementById('statTeachers').innerText = cachedTeachers.length;
+        renderTeachers(cachedTeachers);
+      }
+
+      // Students
+      const resStudents = await apiFetch('/api/students');
+      if (resStudents.ok) {
+        cachedStudents = resStudents.data.data || [];
+        document.getElementById('statStudents').innerText = cachedStudents.length;
+        renderStudents(cachedStudents);
+      }
+
+      // Subjects
+      const resSubjects = await apiFetch('/api/subjects');
+      if (resSubjects.ok) {
+        cachedSubjects = resSubjects.data.data || [];
+        document.getElementById('statSubjects').innerText = cachedSubjects.length;
+        renderSubjects(cachedSubjects);
+      }
+
+      // Materials
+      const resMaterials = await apiFetch('/api/materials');
+      if (resMaterials.ok) {
+        cachedMaterials = resMaterials.data.data || [];
+        renderMaterials(cachedMaterials);
+      }
+
+      // Assignments
+      const resAssignments = await apiFetch('/api/assignments');
+      if (resAssignments.ok) {
+        cachedAssignments = resAssignments.data.data || [];
+        renderAssignments(cachedAssignments);
+        populateAssignmentDropdowns(cachedAssignments);
+      }
+
+      // Submissions
+      const resSubmissions = await apiFetch('/api/submissions');
+      if (resSubmissions.ok) {
+        cachedSubmissions = resSubmissions.data.data || [];
+        renderSubmissions(cachedSubmissions);
+      }
+    }
+
+    function populateClassDropdowns(classes) {
+      const select = document.getElementById('newStudentClassId');
+      if (!select) return;
+      select.innerHTML = classes.map(c => `<option value="${c.ID}">${c.Name} (Kelas ${c.Grade})</option>`).join('');
+    }
+
+    function populateAssignmentDropdowns(assignments) {
+      const select = document.getElementById('submitAssignmentId');
+      if (!select) return;
+      select.innerHTML = assignments.map(a => `<option value="${a.ID}">${a.Title} (Max: ${a.MaxScore})</option>`).join('');
+    }
+
+    // Classes rendering & search
+    function filterClasses() {
+      const search = document.getElementById('searchClassInput').value.toLowerCase();
+      const grade = document.getElementById('filterGradeSelect').value;
+      const filtered = cachedClasses.filter(c => {
+        const matchSearch = c.Name.toLowerCase().includes(search) || (c.Major && c.Major.toLowerCase().includes(search));
+        const matchGrade = grade === 'ALL' || String(c.Grade) === grade;
+        return matchSearch && matchGrade;
+      });
+      renderClasses(filtered);
+    }
+
+    function renderClasses(classes) {
+      const tbody = document.getElementById('classesTableBody');
+      if (!classes.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Tidak ada kelas yang cocok.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = classes.map(c => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="px-4 py-3 font-mono text-xs font-semibold text-slate-500">#${c.ID}</td>
+          <td class="px-4 py-3 font-semibold text-slate-900">${c.Name}</td>
+          <td class="px-4 py-3 text-slate-600">${c.EducationLevel ? c.EducationLevel.Name : 'SMK'}</td>
+          <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700 font-medium">Kelas ${c.Grade}</span></td>
+          <td class="px-4 py-3 font-medium text-slate-800">${c.Major || '-'}</td>
+          <td class="px-4 py-3">
+            ${c.IsPlus ? '<span class="px-2 py-0.5 rounded-full text-[11px] bg-amber-100 text-amber-800 font-bold">PLUS</span>' : '<span class="text-xs text-slate-400">Reguler</span>'}
+          </td>
+          <td class="px-4 py-3 text-right">
+            <button onclick="deleteClass(${c.ID})" class="text-xs text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded hover:bg-red-50">Hapus</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function handleAddClass(e) {
+      e.preventDefault();
+      const name = document.getElementById('newClassName').value;
+      const grade = parseInt(document.getElementById('newClassGrade').value, 10);
+      const major = document.getElementById('newClassMajor').value;
+      const is_plus = document.getElementById('newClassIsPlus').checked;
+
+      const res = await apiFetch('/api/classes', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          education_level_id: 3, // SMK
+          grade,
+          major,
+          is_plus
+        })
+      });
+
+      if (res.ok) {
+        showToast('Kelas berhasil ditambahkan');
+        closeModal('modalAddClass');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menambahkan kelas', 'error');
+      }
+    }
+
+    async function deleteClass(id) {
+      if (!confirm('Hapus kelas ini?')) return;
+      const res = await apiFetch(`/api/classes/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Kelas berhasil dihapus');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menghapus kelas', 'error');
+      }
+    }
+
+    // Teachers rendering
+    function renderTeachers(teachers) {
+      const container = document.getElementById('teachersListContainer');
+      if (!teachers.length) {
+        container.innerHTML = `<p class="col-span-full py-8 text-center text-slate-400">Belum ada guru terdaftar.</p>`;
+        return;
+      }
+      container.innerHTML = teachers.map(t => `
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+                ${t.User ? t.User.Name.charAt(0) : 'G'}
+              </div>
+              <div>
+                <h4 class="font-bold text-slate-900">${t.User ? t.User.Name : 'Guru'}</h4>
+                <span class="text-xs text-slate-500 font-mono">NIP: ${t.NIP}</span>
+              </div>
+            </div>
+            <button onclick="deleteTeacher(${t.ID})" class="text-xs text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+          </div>
+          <div class="text-xs text-slate-600 space-y-1 pt-2 border-t border-slate-100">
+            <p><span class="font-medium text-slate-500">Email:</span> ${t.User ? t.User.Email : '-'}</p>
+            <p><span class="font-medium text-slate-500">Telepon:</span> ${t.Phone || '-'}</p>
+            <p><span class="font-medium text-slate-500">Alamat:</span> ${t.Address || '-'}</p>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    async function handleAddTeacher(e) {
+      e.preventDefault();
+      const res = await apiFetch('/api/teachers', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: document.getElementById('newTeacherName').value,
+          nip: document.getElementById('newTeacherNip').value,
+          email: document.getElementById('newTeacherEmail').value,
+          password: document.getElementById('newTeacherPassword').value,
+          phone: document.getElementById('newTeacherPhone').value,
+          address: document.getElementById('newTeacherAddress').value,
+        })
+      });
+      if (res.ok) {
+        showToast('Guru berhasil ditambahkan');
+        closeModal('modalAddTeacher');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menambahkan guru', 'error');
+      }
+    }
+
+    async function deleteTeacher(id) {
+      if (!confirm('Hapus guru ini?')) return;
+      const res = await apiFetch(`/api/teachers/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Guru berhasil dihapus');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menghapus guru', 'error');
+      }
+    }
+
+    // Students rendering
+    function renderStudents(students) {
+      const tbody = document.getElementById('studentsTableBody');
+      if (!students.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Belum ada siswa terdaftar.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = students.map(s => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="px-4 py-3 font-semibold text-slate-900">${s.User ? s.User.Name : '-'}</td>
+          <td class="px-4 py-3 font-mono text-xs text-slate-600">${s.NIS} / ${s.NISN || '-'}</td>
+          <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-purple-50 text-purple-700 font-semibold">${s.Class ? s.Class.Name : '-'}</span></td>
+          <td class="px-4 py-3 text-xs text-slate-600">${s.User ? s.User.Email : '-'}<br><span class="text-slate-400">${s.Phone || '-'}</span></td>
+          <td class="px-4 py-3 text-xs text-slate-500">${s.Address || '-'}</td>
+          <td class="px-4 py-3 text-right">
+            <button onclick="deleteStudent(${s.ID})" class="text-xs text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded hover:bg-red-50">Hapus</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function handleAddStudent(e) {
+      e.preventDefault();
+      const res = await apiFetch('/api/students', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: document.getElementById('newStudentName').value,
+          nis: document.getElementById('newStudentNis').value,
+          class_id: parseInt(document.getElementById('newStudentClassId').value, 10),
+          email: document.getElementById('newStudentEmail').value,
+          password: document.getElementById('newStudentPassword').value,
+          phone: document.getElementById('newStudentPhone').value,
+        })
+      });
+      if (res.ok) {
+        showToast('Siswa berhasil ditambahkan');
+        closeModal('modalAddStudent');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menambahkan siswa', 'error');
+      }
+    }
+
+    async function deleteStudent(id) {
+      if (!confirm('Hapus siswa ini?')) return;
+      const res = await apiFetch(`/api/students/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Siswa berhasil dihapus');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menghapus siswa', 'error');
+      }
+    }
+
+    // Subjects rendering
+    function renderSubjects(subjects) {
+      const container = document.getElementById('subjectsListContainer');
+      if (!subjects.length) {
+        container.innerHTML = `<p class="col-span-full py-8 text-center text-slate-400">Belum ada mata pelajaran.</p>`;
+        return;
+      }
+      container.innerHTML = subjects.map(s => `
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div>
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-mono font-bold bg-amber-100 text-amber-800 mb-2">${s.Code}</span>
+            <h4 class="font-bold text-slate-900 text-sm">${s.Name}</h4>
+          </div>
+          <div class="mt-4 pt-2 border-t border-slate-100 flex justify-end">
+            <button onclick="deleteSubject(${s.ID})" class="text-xs text-red-600 hover:text-red-800 font-medium">Hapus</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function handleAddSubject(e) {
+      e.preventDefault();
+      const res = await apiFetch('/api/subjects', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: document.getElementById('newSubjectName').value,
+          code: document.getElementById('newSubjectCode').value,
+        })
+      });
+      if (res.ok) {
+        showToast('Mata pelajaran berhasil ditambahkan');
+        closeModal('modalAddSubject');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menambahkan mata pelajaran', 'error');
+      }
+    }
+
+    async function deleteSubject(id) {
+      if (!confirm('Hapus mapel ini?')) return;
+      const res = await apiFetch(`/api/subjects/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Mata pelajaran berhasil dihapus');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menghapus mapel', 'error');
+      }
+    }
+
+    // Materials rendering
+    function renderMaterials(materials) {
+      const container = document.getElementById('materialsListContainer');
+      if (!materials.length) {
+        container.innerHTML = `<p class="py-8 text-center text-slate-400">Belum ada materi pembelajaran.</p>`;
+        return;
+      }
+      container.innerHTML = materials.map(m => `
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="flex items-start space-x-3">
+            <div class="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl mt-1">
+              <i data-lucide="file-text" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 text-base">${m.Title}</h4>
+              <p class="text-xs text-slate-600 mt-1 max-w-xl">${m.Description || '-'}</p>
+              <div class="flex items-center space-x-3 mt-2 text-xs text-slate-500">
+                <span>Pengajar: <b>${m.Teacher && m.Teacher.User ? m.Teacher.User.Name : 'Guru'}</b></span>
+                <span>•</span>
+                <span>${new Date(m.CreatedAt).toLocaleDateString('id-ID')}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            ${m.FileURL ? `<a href="${m.FileURL}" target="_blank" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition flex items-center space-x-1"><i data-lucide="download" class="w-3.5 h-3.5"></i><span>Unduh</span></a>` : ''}
+            <button onclick="deleteMaterial(${m.ID})" class="p-1.5 text-red-500 hover:text-red-700 rounded hover:bg-red-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    async function handleAddMaterial(e) {
+      e.preventDefault();
+      const res = await apiFetch('/api/materials', {
+        method: 'POST',
+        body: JSON.stringify({
+          class_subject_id: 1,
+          teacher_id: 1,
+          title: document.getElementById('newMaterialTitle').value,
+          description: document.getElementById('newMaterialDesc').value,
+          file_url: document.getElementById('newMaterialUrl').value
+        })
+      });
+      if (res.ok) {
+        showToast('Materi berhasil diunggah');
+        closeModal('modalAddMaterial');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menambahkan materi', 'error');
+      }
+    }
+
+    async function deleteMaterial(id) {
+      if (!confirm('Hapus materi ini?')) return;
+      const res = await apiFetch(`/api/materials/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Materi berhasil dihapus');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menghapus materi', 'error');
+      }
+    }
+
+    // Assignments rendering
+    function renderAssignments(assignments) {
+      const container = document.getElementById('assignmentsListContainer');
+      if (!assignments.length) {
+        container.innerHTML = `<p class="py-8 text-center text-slate-400">Belum ada tugas dibuat.</p>`;
+        return;
+      }
+      container.innerHTML = assignments.map(a => `
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="flex items-start space-x-3">
+            <div class="p-2.5 bg-purple-50 text-purple-700 rounded-xl mt-1">
+              <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <h4 class="font-bold text-slate-900 text-base">${a.Title}</h4>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700">Max: ${a.MaxScore} pts</span>
+              </div>
+              <p class="text-xs text-slate-600 mt-1 max-w-xl">${a.Description || '-'}</p>
+              <div class="flex items-center space-x-3 mt-2 text-xs text-slate-500">
+                <span class="text-red-600 font-medium">Batas: ${new Date(a.DueDate).toLocaleString('id-ID')}</span>
+                <span>•</span>
+                <span>Guru: ${a.Teacher && a.Teacher.User ? a.Teacher.User.Name : 'Budi Santoso'}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="openModal('modalSubmitAssignment')" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg transition shadow-xs">
+              Kumpulkan
+            </button>
+            <button onclick="deleteAssignment(${a.ID})" class="p-1.5 text-red-500 hover:text-red-700 rounded hover:bg-red-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    async function handleAddAssignment(e) {
+      e.preventDefault();
+      const res = await apiFetch('/api/assignments', {
+        method: 'POST',
+        body: JSON.stringify({
+          class_subject_id: 1,
+          teacher_id: 1,
+          title: document.getElementById('newAssignmentTitle').value,
+          description: document.getElementById('newAssignmentDesc').value,
+          due_date: document.getElementById('newAssignmentDueDate').value,
+          max_score: parseFloat(document.getElementById('newAssignmentMaxScore').value) || 100
+        })
+      });
+      if (res.ok) {
+        showToast('Tugas berhasil diterbitkan');
+        closeModal('modalAddAssignment');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menerbitkan tugas', 'error');
+      }
+    }
+
+    async function deleteAssignment(id) {
+      if (!confirm('Hapus tugas ini?')) return;
+      const res = await apiFetch(`/api/assignments/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Tugas berhasil dihapus');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menghapus tugas', 'error');
+      }
+    }
+
+    // Submissions rendering
+    function renderSubmissions(submissions) {
+      const container = document.getElementById('submissionsListContainer');
+      if (!submissions.length) {
+        container.innerHTML = `<p class="py-8 text-center text-slate-400">Belum ada tugas yang dikumpulkan.</p>`;
+        return;
+      }
+      container.innerHTML = submissions.map(s => `
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center space-x-2">
+              <h4 class="font-bold text-slate-900 text-sm">${s.Assignment ? s.Assignment.Title : 'Tugas'}</h4>
+              <span class="px-2 py-0.5 rounded text-xs font-bold ${s.Status === 'GRADED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                ${s.Status}
+              </span>
+            </div>
+            <p class="text-xs text-slate-600 mt-1">Siswa: <b>${s.Student && s.Student.User ? s.Student.User.Name : 'Fabian Nanday'}</b> (${s.Student ? s.Student.NIS : '-'})</p>
+            <p class="text-xs text-slate-500 mt-0.5">Catatan: "${s.SubmissionText || '-'}"</p>
+            ${s.Score !== null ? `
+              <div class="mt-2 text-xs bg-slate-50 p-2 rounded-lg border border-slate-100 inline-block">
+                <span class="font-bold text-emerald-700">Nilai: ${s.Score}</span> — <span class="text-slate-600">${s.Feedback || 'Tanpa catatan'}</span>
+              </div>
+            ` : ''}
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="openGradeModal(${s.ID})" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-xs transition">
+              Beri Nilai
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function handleSubmitAssignment(e) {
+      e.preventDefault();
+      const assignmentId = document.getElementById('submitAssignmentId').value;
+      const text = document.getElementById('submitText').value;
+      const fileUrl = document.getElementById('submitFileUrl').value;
+
+      const res = await apiFetch('/api/submissions', {
+        method: 'POST',
+        body: JSON.stringify({
+          assignment_id: Number(assignmentId),
+          student_id: 1,
+          submission_text: text,
+          file_url: fileUrl
+        })
+      });
+
+      if (res.ok) {
+        showToast('Tugas berhasil dikumpulkan!');
+        closeModal('modalSubmitAssignment');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal mengumpulkan tugas. Pastikan Anda login dengan role STUDENT.', 'error');
+      }
+    }
+
+    function openGradeModal(submissionId) {
+      document.getElementById('gradeSubmissionId').value = submissionId;
+      openModal('modalGradeSubmission');
+    }
+
+    async function handleGradeSubmission(e) {
+      e.preventDefault();
+      const id = document.getElementById('gradeSubmissionId').value;
+      const score = document.getElementById('gradeScore').value;
+      const feedback = document.getElementById('gradeFeedback').value;
+
+      const res = await apiFetch(`/api/submissions/${id}/grade`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          score: parseFloat(score),
+          feedback
+        })
+      });
+
+      if (res.ok) {
+        showToast('Nilai berhasil disimpan');
+        closeModal('modalGradeSubmission');
+        await loadInitialData();
+      } else {
+        showToast(res.data.error || 'Gagal menyimpan nilai', 'error');
+      }
+    }
+
+    // API Explorer
+    function setApiRequest(method, url, body) {
+      document.getElementById('apiMethod').value = method;
+      document.getElementById('apiUrl').value = url;
+      document.getElementById('apiBody').value = body || '';
+    }
+
+    async function executeApiRequest() {
+      const method = document.getElementById('apiMethod').value;
+      const url = document.getElementById('apiUrl').value;
+      const bodyRaw = document.getElementById('apiBody').value.trim();
+      const statusEl = document.getElementById('apiResponseStatus');
+      const outputEl = document.getElementById('apiResponseOutput');
+
+      statusEl.innerText = 'Loading...';
+      statusEl.className = 'text-xs font-mono font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800';
+
+      let body = null;
+      if (['POST', 'PUT', 'PATCH'].includes(method) && bodyRaw) {
+        try {
+          body = JSON.parse(bodyRaw);
+        } catch (e) {
+          statusEl.innerText = 'JSON Error';
+          statusEl.className = 'text-xs font-mono font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800';
+          outputEl.innerText = `Invalid JSON Body: ${e.message}`;
+          return;
+        }
+      }
+
+      const res = await apiFetch(url, {
+        method,
+        body: body ? JSON.stringify(body) : undefined
+      });
+
+      statusEl.innerText = `Status: ${res.status}`;
+      if (res.ok) {
+        statusEl.className = 'text-xs font-mono font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800';
+      } else {
+        statusEl.className = 'text-xs font-mono font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800';
+      }
+
+      outputEl.innerText = JSON.stringify(res.data, null, 2);
+    }
+  </script>
+</body>
+</html>
