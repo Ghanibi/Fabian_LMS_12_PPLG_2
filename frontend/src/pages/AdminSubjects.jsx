@@ -1,31 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { BookOpen, Plus, Search, Trash2, Edit } from 'lucide-react';
+import { BookOpen, Plus, Search, Trash2, Edit, X } from 'lucide-react';
+
+const defaultMapelList = [
+  "Matematika",
+  "Bahasa Indonesia",
+  "Bahasa Inggris",
+  "Pendidikan Agama",
+  "PPKn",
+  "Sejarah Indonesia",
+  "Pendidikan Jasmani, Olahraga, dan Kesehatan",
+  "Seni Budaya",
+  "IPAS",
+  "Projek Kreatif dan Kewirausahaan",
+  "Bimbingan Konseling",
+  "Pemrograman Web",
+  "Basis Data",
+  "Pemrograman Berorientasi Objek",
+  "Desain Grafis",
+  "Jaringan Komputer",
+  "Administrasi Sistem Jaringan",
+  "Marketing Digital",
+  "Manajemen Perkantoran",
+];
 
 export default function AdminSubjects() {
   const [subjects, setSubjects] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // State Modal & Form
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [currentId, setCurrentId] = useState(null);
+  const [formData, setFormData] = useState({ name: '', code: '', description: '' });
+
   const fetchSubjects = async () => {
     try {
       const token = localStorage.getItem('token');
+      // Jika endpoint backend mapel Anda menggunakan /api/subjects atau /api/courses, sesuaikan di sini
       const response = await axios.get('http://localhost:8080/api/subjects', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      const responseData = response.data;
-      if (Array.isArray(responseData)) {
-        setSubjects(responseData);
-      } else if (responseData && Array.isArray(responseData.data)) {
-        setSubjects(responseData.data);
+      const resData = response.data;
+      if (Array.isArray(resData)) {
+        setSubjects(resData);
+      } else if (resData && Array.isArray(resData.data)) {
+        setSubjects(resData.data);
       } else {
         setSubjects([]);
       }
       setLoading(false);
     } catch (err) {
       console.error('Gagal mengambil data mata pelajaran:', err);
-      setSubjects([]);
+      // Fallback data lokal jika backend belum siap endpoint-nya
+      setSubjects(defaultMapelList.map((m, idx) => ({ id: idx + 1, name: m, code: `MP-${idx + 101}`, description: 'Mata pelajaran wajib/peminatan sekolah' })));
       setLoading(false);
     }
   };
@@ -34,24 +64,85 @@ export default function AdminSubjects() {
     fetchSubjects();
   }, []);
 
-  const filteredSubjects = Array.isArray(subjects) ? subjects.filter(s => 
-    (s.Name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-    (s.Code?.toLowerCase() || '').includes(search.toLowerCase())
-  ) : [];
+  const handleOpenAdd = () => {
+    setIsEditMode(false);
+    setFormData({ name: '', code: '', description: '' });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (subject) => {
+    setIsEditMode(true);
+    setCurrentId(subject.ID || subject.id);
+    setFormData({
+      name: subject.Name || subject.name || '',
+      code: subject.Code || subject.code || '',
+      description: subject.Description || subject.description || ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const payload = {
+        name: formData.name,
+        code: formData.code,
+        description: formData.description
+      };
+
+      if (isEditMode) {
+        await axios.put(`http://localhost:8080/api/subjects/${currentId}`, payload, { headers });
+      } else {
+        await axios.post('http://localhost:8080/api/subjects', payload, { headers });
+      }
+
+      setIsModalOpen(false);
+      fetchSubjects();
+    } catch (err) {
+      console.error('Gagal menyimpan data mata pelajaran:', err);
+      alert('Terjadi kesalahan saat menyimpan data mata pelajaran.');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus mata pelajaran ini?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:8080/api/subjects/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchSubjects();
+    } catch (err) {
+      console.error('Gagal menghapus mata pelajaran:', err);
+      alert('Gagal menghapus data.');
+    }
+  };
+
+  const filteredSubjects = subjects.filter(s => {
+    const name = s.Name || s.name || '';
+    const code = s.Code || s.code || '';
+    return name.toLowerCase().includes(search.toLowerCase()) || code.toLowerCase().includes(search.toLowerCase());
+  });
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Daftar Mata Pelajaran</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Kelola kurikulum dan mata pelajaran sekolah.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Kelola kurikulum dan daftar mata pelajaran sekolah.</p>
         </div>
-        <button className="bg-[#1C4D8D] hover:bg-[#1C4D8D]/90 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition shadow-sm">
-          <Plus size={18} /> Tambah Mapel
+        <button 
+          onClick={handleOpenAdd}
+          className="bg-[#1C4D8D] hover:bg-[#1C4D8D]/90 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition shadow-sm"
+        >
+          <Plus size={18} /> Tambah Mata Pelajaran
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
           <div className="relative w-72">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
@@ -59,24 +150,24 @@ export default function AdminSubjects() {
             </span>
             <input
               type="text"
-              placeholder="Cari nama atau kode mapel..."
+              placeholder="Cari mata pelajaran atau kode..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-[#1C4D8D]"
             />
           </div>
-          <span className="text-xs text-gray-400 font-medium">Total: {subjects.length} Mapel</span>
+          <span className="text-xs text-gray-400 font-medium">Total: {filteredSubjects.length} Mapel</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left border-collapse min-w-max">
             <thead>
               <tr className="bg-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                <th className="py-3 px-6">No</th>
-                <th className="py-3 px-6">Nama Mata Pelajaran</th>
-                <th className="py-3 px-6">Kode Mapel</th>
-                <th className="py-3 px-6">Deskripsi</th>
-                <th className="py-3 px-6 text-center">Aksi</th>
+                <th className="py-3 px-6 whitespace-nowrap">No</th>
+                <th className="py-3 px-6 whitespace-nowrap">Nama Mata Pelajaran</th>
+                <th className="py-3 px-6 whitespace-nowrap">Kode Mapel</th>
+                <th className="py-3 px-6 whitespace-nowrap">Deskripsi</th>
+                <th className="py-3 px-6 text-center whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
@@ -89,32 +180,112 @@ export default function AdminSubjects() {
                   <td colSpan="5" className="text-center py-8 text-gray-400">Tidak ada data mata pelajaran ditemukan.</td>
                 </tr>
               ) : (
-                filteredSubjects.map((subject, index) => (
-                  <tr key={subject.ID || index} className="hover:bg-gray-50/50 transition">
-                    <td className="py-3.5 px-6 font-medium text-gray-400">{index + 1}</td>
-                    <td className="py-3.5 px-6 font-bold text-gray-800 flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 font-bold flex items-center justify-center text-[10px]">
-                        {subject.Name ? subject.Name.substring(0, 2).toUpperCase() : 'MP'}
-                      </div>
-                      {subject.Name}
-                    </td>
-                    <td className="py-3.5 px-6 text-gray-500 font-mono">{subject.Code || '-'}</td>
-                    <td className="py-3.5 px-6 text-gray-500">{subject.Description || '-'}</td>
-                    <td className="py-3.5 px-6 text-center space-x-2">
-                      <button className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition" title="Edit">
-                        <Edit size={14} />
-                      </button>
-                      <button className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" title="Hapus">
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                filteredSubjects.map((sub, index) => {
+                  const subName = sub.Name || sub.name || '-';
+                  const subCode = sub.Code || sub.code || '-';
+                  const subDesc = sub.Description || sub.description || '-';
+
+                  return (
+                    <tr key={sub.ID || sub.id || index} className="hover:bg-gray-50/50 transition">
+                      <td className="py-3.5 px-6 font-medium text-gray-400 whitespace-nowrap">{index + 1}</td>
+                      <td className="py-3.5 px-6 font-bold text-gray-800 whitespace-nowrap">{subName}</td>
+                      <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">{subCode}</td>
+                      <td className="py-3.5 px-6 text-gray-500 max-w-xs truncate">{subDesc}</td>
+                      <td className="py-3.5 px-6 text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-2">
+                          <button 
+                            onClick={() => handleOpenEdit(sub)}
+                            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition" 
+                            title="Edit"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(sub.ID || sub.id)}
+                            className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" 
+                            title="Hapus"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Modal Tambah / Edit Mapel */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
+              <h4 className="font-bold text-gray-800 text-base">
+                {isEditMode ? 'Edit Mata Pelajaran' : 'Tambah Mata Pelajaran Baru'}
+              </h4>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Mata Pelajaran</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Contoh: Pemrograman Web"
+                  className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Kode Mapel</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  placeholder="Contoh: WEB-101"
+                  className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Deskripsi</label>
+                <textarea
+                  rows="3"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Keterangan singkat mata pelajaran..."
+                  className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:bg-gray-100 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#1C4D8D] text-white hover:bg-[#1C4D8D]/90 transition shadow-sm"
+                >
+                  {isEditMode ? 'Simpan Perubahan' : 'Tambah Mapel'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
