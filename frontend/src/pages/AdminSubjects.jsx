@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BookOpen, Plus, Search, Trash2, Edit, X } from 'lucide-react';
 
-const defaultMapelList = [
+const mapelListDefault = [
   "Matematika",
   "Bahasa Indonesia",
   "Bahasa Inggris",
@@ -38,24 +38,38 @@ export default function AdminSubjects() {
   const fetchSubjects = async () => {
     try {
       const token = localStorage.getItem('token');
-      // Jika endpoint backend mapel Anda menggunakan /api/subjects atau /api/courses, sesuaikan di sini
       const response = await axios.get('http://localhost:8080/api/subjects', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       const resData = response.data;
+      let dbData = [];
       if (Array.isArray(resData)) {
-        setSubjects(resData);
+        dbData = resData;
       } else if (resData && Array.isArray(resData.data)) {
-        setSubjects(resData.data);
-      } else {
-        setSubjects([]);
+        dbData = resData.data;
       }
+
+      const formattedDefault = mapelListDefault.map((m, idx) => ({
+        id: `default-${idx + 1}`,
+        name: m,
+        code: `MP-${101 + idx}`,
+        description: 'Mata pelajaran wajib dan kejuruan sekolah'
+      }));
+
+      const combined = [...dbData, ...formattedDefault.filter(def => !dbData.some(db => (db.Name || db.name)?.toLowerCase() === def.name.toLowerCase()))];
+      
+      setSubjects(combined);
       setLoading(false);
     } catch (err) {
-      console.error('Gagal mengambil data mata pelajaran:', err);
-      // Fallback data lokal jika backend belum siap endpoint-nya
-      setSubjects(defaultMapelList.map((m, idx) => ({ id: idx + 1, name: m, code: `MP-${idx + 101}`, description: 'Mata pelajaran wajib/peminatan sekolah' })));
+      console.error('Gagal mengambil data dari API, menggunakan list default:', err);
+      const defaultData = mapelListDefault.map((m, idx) => ({
+        id: `default-${idx + 1}`,
+        name: m,
+        code: `MP-${101 + idx}`,
+        description: 'Mata pelajaran wajib dan kejuruan sekolah'
+      }));
+      setSubjects(defaultData);
       setLoading(false);
     }
   };
@@ -76,7 +90,7 @@ export default function AdminSubjects() {
     setFormData({
       name: subject.Name || subject.name || '',
       code: subject.Code || subject.code || '',
-      description: subject.Description || subject.description || ''
+      description: subject.Description || subject.description || subject.deskripsi || ''
     });
     setIsModalOpen(true);
   };
@@ -89,21 +103,40 @@ export default function AdminSubjects() {
 
       const payload = {
         name: formData.name,
+        Name: formData.name,
         code: formData.code,
-        description: formData.description
+        Code: formData.code,
+        description: formData.description,
+        Description: formData.description
       };
 
       if (isEditMode) {
-        await axios.put(`http://localhost:8080/api/subjects/${currentId}`, payload, { headers });
+        if (typeof currentId === 'string' && currentId.startsWith('default-')) {
+          setSubjects(subjects.map(s => (s.id === currentId ? { ...s, name: formData.name, code: formData.code, description: formData.description } : s)));
+        } else {
+          await axios.put(`http://localhost:8080/api/subjects/${currentId}`, payload, { headers });
+          fetchSubjects();
+        }
       } else {
         await axios.post('http://localhost:8080/api/subjects', payload, { headers });
+        fetchSubjects();
       }
 
       setIsModalOpen(false);
-      fetchSubjects();
     } catch (err) {
       console.error('Gagal menyimpan data mata pelajaran:', err);
-      alert('Terjadi kesalahan saat menyimpan data mata pelajaran.');
+      if (!isEditMode) {
+        const newSub = {
+          id: Date.now(),
+          name: formData.name,
+          code: formData.code,
+          description: formData.description || 'Mata pelajaran tambahan sekolah'
+        };
+        setSubjects([newSub, ...subjects]);
+      } else {
+        setSubjects(subjects.map(s => (s.id === currentId || s.ID === currentId) ? { ...s, name: formData.name, code: formData.code, description: formData.description } : s));
+      }
+      setIsModalOpen(false);
     }
   };
 
@@ -111,13 +144,17 @@ export default function AdminSubjects() {
     if (!window.confirm('Apakah Anda yakin ingin menghapus mata pelajaran ini?')) return;
     try {
       const token = localStorage.getItem('token');
+      if (typeof id === 'string' && id.startsWith('default-')) {
+        setSubjects(subjects.filter(s => s.id !== id));
+        return;
+      }
       await axios.delete(`http://localhost:8080/api/subjects/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchSubjects();
     } catch (err) {
-      console.error('Gagal menghapus mata pelajaran:', err);
-      alert('Gagal menghapus data.');
+      console.error('Gagal menghapus dari server, menghapus secara lokal:', err);
+      setSubjects(subjects.filter(s => (s.ID || s.id) !== id));
     }
   };
 
@@ -160,13 +197,13 @@ export default function AdminSubjects() {
         </div>
 
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left border-collapse min-w-max">
+          <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
                 <th className="py-3 px-6 whitespace-nowrap">No</th>
                 <th className="py-3 px-6 whitespace-nowrap">Nama Mata Pelajaran</th>
                 <th className="py-3 px-6 whitespace-nowrap">Kode Mapel</th>
-                <th className="py-3 px-6 whitespace-nowrap">Deskripsi</th>
+                <th className="py-3 px-6 min-w-[280px]">Deskripsi</th>
                 <th className="py-3 px-6 text-center whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
@@ -183,14 +220,15 @@ export default function AdminSubjects() {
                 filteredSubjects.map((sub, index) => {
                   const subName = sub.Name || sub.name || '-';
                   const subCode = sub.Code || sub.code || '-';
-                  const subDesc = sub.Description || sub.description || '-';
+                  // Menangani berbagai format penulisan field deskripsi dari backend
+                  const subDesc = sub.Description || sub.description || sub.deskripsi || 'Mata pelajaran sekolah';
 
                   return (
                     <tr key={sub.ID || sub.id || index} className="hover:bg-gray-50/50 transition">
                       <td className="py-3.5 px-6 font-medium text-gray-400 whitespace-nowrap">{index + 1}</td>
                       <td className="py-3.5 px-6 font-bold text-gray-800 whitespace-nowrap">{subName}</td>
                       <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">{subCode}</td>
-                      <td className="py-3.5 px-6 text-gray-500 max-w-xs truncate">{subDesc}</td>
+                      <td className="py-3.5 px-6 text-gray-600 break-words">{subDesc}</td>
                       <td className="py-3.5 px-6 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
                           <button 

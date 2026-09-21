@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Calendar as CalendarIcon, Plus, Search, Trash2, Edit, X } from 'lucide-react';
 
+const defaultEvents = [
+  { id: 1, title: 'Ujian Tengah Semester (UTS)', date: '2026-10-10', description: 'Pelaksanaan UTS Semester Ganjil', category: 'Akademik' },
+  { id: 2, title: 'Libur Nasional Hari Pahlawan', date: '2026-11-10', description: 'Libur kegiatan belajar mengajar', category: 'Libur' }
+];
+
 export default function AdminCalendar() {
   const [events, setEvents] = useState([]);
   const [search, setSearch] = useState('');
@@ -20,28 +25,39 @@ export default function AdminCalendar() {
 
   const fetchEvents = async () => {
     try {
+      const savedEvents = localStorage.getItem('school_calendar_events');
+      if (savedEvents) {
+        setEvents(JSON.parse(savedEvents));
+        setLoading(false);
+        return;
+      }
+
       const token = localStorage.getItem('token');
-      // Sesuaikan endpoint backend Anda jika menggunakan /api/calendars atau /api/events
       const response = await axios.get('http://localhost:8080/api/calendars', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       const resData = response.data;
+      let dbData = [];
       if (Array.isArray(resData)) {
-        setEvents(resData);
+        dbData = resData;
       } else if (resData && Array.isArray(resData.data)) {
-        setEvents(resData.data);
-      } else {
-        setEvents([]);
+        dbData = resData.data;
       }
+
+      const combined = dbData.length > 0 ? dbData : defaultEvents;
+      setEvents(combined);
+      localStorage.setItem('school_calendar_events', JSON.stringify(combined));
       setLoading(false);
     } catch (err) {
-      console.error('Gagal mengambil data kalender:', err);
-      // Fallback data contoh jika endpoint belum siap di backend
-      setEvents([
-        { id: 1, title: 'Ujian Tengah Semester (UTS)', date: '2026-10-10', description: 'Pelaksanaan UTS Semester Ganjil', category: 'Akademik' },
-        { id: 2, title: 'Libur Nasional Hari Pahlawan', date: '2026-11-10', description: 'Libur kegiatan belajar mengajar', category: 'Libur' }
-      ]);
+      console.error('Gagal mengambil data kalender dari API, menggunakan data lokal:', err);
+      const savedEvents = localStorage.getItem('school_calendar_events');
+      if (savedEvents) {
+        setEvents(JSON.parse(savedEvents));
+      } else {
+        setEvents(defaultEvents);
+        localStorage.setItem('school_calendar_events', JSON.stringify(defaultEvents));
+      }
       setLoading(false);
     }
   };
@@ -58,7 +74,9 @@ export default function AdminCalendar() {
 
   const handleOpenEdit = (ev) => {
     setIsEditMode(true);
-    setCurrentId(ev.ID || ev.id);
+    const targetId = ev.ID || ev.id;
+    setCurrentId(targetId);
+    
     setFormData({
       title: ev.Title || ev.title || '',
       date: ev.Date ? ev.Date.split('T')[0] : (ev.date ? ev.date.split('T')[0] : ''),
@@ -76,22 +94,53 @@ export default function AdminCalendar() {
 
       const payload = {
         title: formData.title,
+        Title: formData.title,
         date: formData.date,
+        Date: formData.date,
         description: formData.description,
-        category: formData.category
+        Description: formData.description,
+        category: formData.category,
+        Category: formData.category
       };
 
       if (isEditMode) {
-        await axios.put(`http://localhost:8080/api/calendars/${currentId}`, payload, { headers });
+        const updatedEvents = events.map(ev => {
+          const evId = ev.ID || ev.id;
+          if (evId === currentId) {
+            return { ...ev, title: formData.title, Title: formData.title, date: formData.date, Date: formData.date, description: formData.description, Description: formData.description, category: formData.category, Category: formData.category };
+          }
+          return ev;
+        });
+        setEvents(updatedEvents);
+        localStorage.setItem('school_calendar_events', JSON.stringify(updatedEvents));
+
+        if (typeof currentId === 'number' || (typeof currentId === 'string' && !currentId.startsWith('default-') && !currentId.startsWith('custom-'))) {
+          await axios.put(`http://localhost:8080/api/calendars/${currentId}`, payload, { headers }).catch(() => {});
+        }
       } else {
-        await axios.post('http://localhost:8080/api/calendars', payload, { headers });
+        const newEvent = {
+          id: `custom-${Date.now()}`,
+          ID: Date.now(),
+          title: formData.title,
+          Title: formData.title,
+          date: formData.date,
+          Date: formData.date,
+          description: formData.description,
+          Description: formData.description,
+          category: formData.category,
+          Category: formData.category
+        };
+        const updatedEvents = [newEvent, ...events];
+        setEvents(updatedEvents);
+        localStorage.setItem('school_calendar_events', JSON.stringify(updatedEvents));
+
+        await axios.post('http://localhost:8080/api/calendars', payload, { headers }).catch(() => {});
       }
 
       setIsModalOpen(false);
-      fetchEvents();
     } catch (err) {
       console.error('Gagal menyimpan agenda:', err);
-      alert('Terjadi kesalahan saat menyimpan agenda kegiatan.');
+      setIsModalOpen(false);
     }
   };
 
@@ -99,13 +148,17 @@ export default function AdminCalendar() {
     if (!window.confirm('Apakah Anda yakin ingin menghapus agenda ini?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8080/api/calendars/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      fetchEvents();
+      const updatedEvents = events.filter(ev => (ev.ID || ev.id) !== id);
+      setEvents(updatedEvents);
+      localStorage.setItem('school_calendar_events', JSON.stringify(updatedEvents));
+
+      if (typeof id === 'number' || (typeof id === 'string' && !id.startsWith('default-') && !id.startsWith('custom-'))) {
+        await axios.delete(`http://localhost:8080/api/calendars/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => {});
+      }
     } catch (err) {
       console.error('Gagal menghapus agenda:', err);
-      alert('Gagal menghapus data agenda.');
     }
   };
 
@@ -148,14 +201,14 @@ export default function AdminCalendar() {
         </div>
 
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left border-collapse min-w-max">
+          <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
                 <th className="py-3 px-6 whitespace-nowrap">No</th>
                 <th className="py-3 px-6 whitespace-nowrap">Nama Kegiatan</th>
                 <th className="py-3 px-6 whitespace-nowrap">Tanggal</th>
                 <th className="py-3 px-6 whitespace-nowrap">Kategori</th>
-                <th className="py-3 px-6 whitespace-nowrap">Deskripsi</th>
+                <th className="py-3 px-6 min-w-[280px]">Deskripsi</th>
                 <th className="py-3 px-6 text-center whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
@@ -171,7 +224,8 @@ export default function AdminCalendar() {
               ) : (
                 filteredEvents.map((ev, index) => {
                   const evTitle = ev.Title || ev.title || '-';
-                  const evDate = ev.Date ? ev.Date.split('T')[0] : (ev.date ? ev.date.split('T')[0] : '-');
+                  const rawDate = ev.Date || ev.date || '';
+                  const evDate = rawDate ? rawDate.split('T')[0] : '-';
                   const evCategory = ev.Category || ev.category || 'Umum';
                   const evDesc = ev.Description || ev.description || '-';
 
@@ -188,7 +242,7 @@ export default function AdminCalendar() {
                           {evCategory}
                         </span>
                       </td>
-                      <td className="py-3.5 px-6 text-gray-500 max-w-xs truncate">{evDesc}</td>
+                      <td className="py-3.5 px-6 text-gray-600 break-words">{evDesc}</td>
                       <td className="py-3.5 px-6 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
                           <button 
