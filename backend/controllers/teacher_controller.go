@@ -11,25 +11,35 @@ import (
 )
 
 type CreateTeacherInput struct {
-	Name     string `json:"name" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
-	NIP      string `json:"nip"`
-	Gender   string `json:"gender"`
-	Subject  string `json:"subject"`
-	Phone    string `json:"phone"`
-	Address  string `json:"address"`
+	Name         string `json:"name" binding:"required"`
+	Email        string `json:"email" binding:"required,email"`
+	Password     string `json:"password"`
+	NIP          string `json:"nip"`
+	Gender       string `json:"gender"`
+	Subject      string `json:"subject"`
+	Phone        string `json:"phone"`
+	Address      string `json:"address"`
+	Code         string `json:"code"`
+	Position     string `json:"position"`
+	PlusHours    int    `json:"plus_hours"`
+	RegularHours int    `json:"regular_hours"`
+	TotalHours   int    `json:"total_hours"`
 }
 
 type UpdateTeacherInput struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	NIP      string `json:"nip"`
-	Gender   string `json:"gender"`
-	Subject  string `json:"subject"`
-	Phone    string `json:"phone"`
-	Address  string `json:"address"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	Password     string `json:"password"`
+	NIP          string `json:"nip"`
+	Gender       string `json:"gender"`
+	Subject      string `json:"subject"`
+	Phone        string `json:"phone"`
+	Address      string `json:"address"`
+	Code         string `json:"code"`
+	Position     string `json:"position"`
+	PlusHours    *int   `json:"plus_hours"`
+	RegularHours *int   `json:"regular_hours"`
+	TotalHours   *int   `json:"total_hours"`
 }
 
 func GetTeachers(c *gin.Context) {
@@ -71,9 +81,16 @@ func CreateTeacher(c *gin.Context) {
 		return
 	}
 
-	var existingUser models.User
-	if err := config.DB.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
+	if emailTakenByOther(input.Email, 0) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah terdaftar"})
+		return
+	}
+	if input.NIP != "" && nipTakenByOther(input.NIP, 0) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "NIP sudah terdaftar"})
+		return
+	}
+	if len(input.Password) < 6 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Password minimal 6 karakter"})
 		return
 	}
 
@@ -100,12 +117,17 @@ func CreateTeacher(c *gin.Context) {
 
 	// 2. Buat Teacher
 	teacher := models.Teacher{
-		UserID:  user.ID,
-		NIP:     input.NIP,
-		Gender:  input.Gender,
-		Subject: input.Subject,
-		Phone:   input.Phone,
-		Address: input.Address,
+		UserID:       user.ID,
+		NIP:          optionalString(input.NIP),
+		Gender:       input.Gender,
+		Subject:      input.Subject,
+		Phone:        input.Phone,
+		Address:      input.Address,
+		Code:         input.Code,
+		Position:     input.Position,
+		PlusHours:    input.PlusHours,
+		RegularHours: input.RegularHours,
+		TotalHours:   input.TotalHours,
 	}
 	if err := tx.Create(&teacher).Error; err != nil {
 		tx.Rollback()
@@ -142,6 +164,19 @@ func UpdateTeacher(c *gin.Context) {
 		return
 	}
 
+	if input.Email != "" && emailTakenByOther(input.Email, teacher.UserID) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah terdaftar"})
+		return
+	}
+	if input.NIP != "" && nipTakenByOther(input.NIP, teacher.ID) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "NIP sudah terdaftar"})
+		return
+	}
+	if input.Password != "" && len(input.Password) < 6 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Password minimal 6 karakter"})
+		return
+	}
+
 	tx := config.DB.Begin()
 
 	// Update data User
@@ -168,7 +203,7 @@ func UpdateTeacher(c *gin.Context) {
 
 	// Update data Teacher
 	if input.NIP != "" {
-		teacher.NIP = input.NIP
+		teacher.NIP = optionalString(input.NIP)
 	}
 	if input.Gender != "" {
 		teacher.Gender = input.Gender
@@ -181,6 +216,21 @@ func UpdateTeacher(c *gin.Context) {
 	}
 	if input.Address != "" {
 		teacher.Address = input.Address
+	}
+	if input.Code != "" {
+		teacher.Code = input.Code
+	}
+	if input.Position != "" {
+		teacher.Position = input.Position
+	}
+	if input.PlusHours != nil {
+		teacher.PlusHours = *input.PlusHours
+	}
+	if input.RegularHours != nil {
+		teacher.RegularHours = *input.RegularHours
+	}
+	if input.TotalHours != nil {
+		teacher.TotalHours = *input.TotalHours
 	}
 
 	if err := tx.Save(&teacher).Error; err != nil {
@@ -213,6 +263,18 @@ func DeleteTeacher(c *gin.Context) {
 	}
 
 	tx := config.DB.Begin()
+	if err := tx.Model(&models.Class{}).Where("homeroom_teacher_id = ?", teacher.ID).Update("homeroom_teacher_id", nil).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal melepas penugasan wali kelas guru"})
+		return
+	}
+
+	// Hapus penugasan kelas guru agar tidak meninggalkan data yatim.
+	if err := tx.Where("teacher_id = ?", teacher.ID).Delete(&models.TeacherSubject{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus penugasan mengajar guru"})
+		return
+	}
 
 	if err := tx.Delete(&teacher).Error; err != nil {
 		tx.Rollback()
@@ -231,4 +293,45 @@ func DeleteTeacher(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Guru dan akun terkait berhasil dihapus",
 	})
+}
+
+// GetMyClasses: dipakai oleh guru untuk melihat kelas & mapel yang diampunya sendiri.
+func GetMyClasses(c *gin.Context) {
+	teacher, err := currentTeacher(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Data guru tidak ditemukan"})
+		return
+	}
+
+	var teacherSubjects []models.TeacherSubject
+	if err := config.DB.Where("teacher_id = ?", teacher.ID).Find(&teacherSubjects).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data kelas yang diampu"})
+		return
+	}
+
+	type myClassOut struct {
+		ClassSubjectID uint   `json:"class_subject_id"`
+		ClassName      string `json:"class_name"`
+		SubjectName    string `json:"subject_name"`
+	}
+
+	result := make([]myClassOut, 0, len(teacherSubjects))
+	for _, ts := range teacherSubjects {
+		var classSubject models.ClassSubject
+		if err := config.DB.Where("class_id = ? AND subject_id = ?", ts.ClassID, ts.SubjectID).First(&classSubject).Error; err != nil {
+			continue
+		}
+		var class models.Class
+		var subject models.Subject
+		config.DB.First(&class, ts.ClassID)
+		config.DB.First(&subject, ts.SubjectID)
+
+		result = append(result, myClassOut{
+			ClassSubjectID: classSubject.ID,
+			ClassName:      class.Name,
+			SubjectName:    subject.Name,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Berhasil mengambil data kelas yang diampu", "data": result})
 }

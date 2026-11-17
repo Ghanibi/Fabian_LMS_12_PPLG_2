@@ -12,8 +12,7 @@ func AuthRoutes(router *gin.Engine) {
 
 	{
 		auth.POST("/login", controllers.Login)
-		// DAFTARKAN ROUTE BARU DI SINI
-		// Route ini akan menjalankan AuthMiddleware() dulu, baru controllers.GetMe()
 		auth.GET("/me", middleware.AuthMiddleware(), controllers.GetMe)
+		auth.POST("/change-password", middleware.AuthMiddleware(), controllers.ChangePassword)
 	}
 }

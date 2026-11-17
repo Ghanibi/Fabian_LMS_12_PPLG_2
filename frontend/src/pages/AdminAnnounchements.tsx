@@ -1,27 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Bell, Plus, Search, Trash2, Edit, X } from 'lucide-react';
+import FileDropzone from '../components/FileDropzone';
+import { responseRecordId, uploadAttachments } from '../lib/attachments';
+
+interface Announcement {
+  id?: number;
+  ID?: number;
+  title?: string;
+  Title?: string;
+  content?: string;
+  Content?: string;
+  target_role?: string;
+  TargetRole?: string;
+}
 
 export default function AdminAnnouncements() {
-  const [announcements, setAnnouncements] = useState([]);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [search, setSearch] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // State Modal & Form
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [currentId, setCurrentId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
     target_role: 'Semua'
   });
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
 
   const fetchAnnouncements = async () => {
     try {
       const token = localStorage.getItem('token');
-      // Sesuaikan endpoint backend Anda jika menggunakan /api/announcements
-      const response = await axios.get('http://localhost:8080/api/announcements', {
+      const response = await axios.get('/api/announcements', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -36,9 +48,8 @@ export default function AdminAnnouncements() {
       setLoading(false);
     } catch (err) {
       console.error('Gagal mengambil data pengumuman:', err);
-      // Fallback data contoh jika endpoint belum siap di backend
       setAnnouncements([
-        { id: 1, title: 'Pembagian Rapor Semester', content: 'Pembagian rapor akan dilaksanakan pada akhir bulan.', target_role: 'Semua', created_at: '2026-10-01' }
+        { id: 1, title: 'Pembagian Rapor Semester', content: 'Pembagian rapor akan dilaksanakan pada akhir bulan.', target_role: 'Semua' }
       ]);
       setLoading(false);
     }
@@ -50,13 +61,16 @@ export default function AdminAnnouncements() {
 
   const handleOpenAdd = () => {
     setIsEditMode(false);
+    setCurrentId(null);
+    setAttachmentFiles([]);
     setFormData({ title: '', content: '', target_role: 'Semua' });
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (item) => {
+  const handleOpenEdit = (item: Announcement) => {
     setIsEditMode(true);
-    setCurrentId(item.ID || item.id);
+    setCurrentId(item.ID !== undefined ? item.ID : item.id!);
+    setAttachmentFiles([]);
     setFormData({
       title: item.Title || item.title || '',
       content: item.Content || item.content || '',
@@ -65,7 +79,7 @@ export default function AdminAnnouncements() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
@@ -73,29 +87,32 @@ export default function AdminAnnouncements() {
 
       const payload = {
         title: formData.title,
+        Title: formData.title,
         content: formData.content,
-        target_role: formData.target_role
+        Content: formData.content,
+        target_role: formData.target_role,
+        TargetRole: formData.target_role
       };
 
-      if (isEditMode) {
-        await axios.put(`http://localhost:8080/api/announcements/${currentId}`, payload, { headers });
-      } else {
-        await axios.post('http://localhost:8080/api/announcements', payload, { headers });
-      }
+      let announcementId = currentId;
+      if (isEditMode) await axios.put(`/api/announcements/${currentId}`, payload, { headers });
+      else announcementId = responseRecordId(await axios.post('/api/announcements', payload, { headers }));
+      if (announcementId) await uploadAttachments('announcements', announcementId, attachmentFiles, headers);
 
       setIsModalOpen(false);
       fetchAnnouncements();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Gagal menyimpan pengumuman:', err);
-      alert('Terjadi kesalahan saat menyimpan pengumuman.');
+      const errMsg = err.response?.data?.error || 'Terjadi kesalahan saat menyimpan pengumuman.';
+      alert(errMsg);
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus pengumuman ini?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8080/api/announcements/${id}`, {
+      await axios.delete(`/api/announcements/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchAnnouncements();
@@ -113,10 +130,10 @@ export default function AdminAnnouncements() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Pengumuman Sekolah</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Kelola informasi dan pengumuman untuk siswa maupun guru.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Kelola informasi dan pengumuman untuk siswa maupun guru (TypeScript).</p>
         </div>
         <button 
           onClick={handleOpenAdd}
@@ -127,8 +144,8 @@ export default function AdminAnnouncements() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <div className="relative w-72">
+        <div className="p-4 border-b border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full max-w-xs">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
               <Search size={16} />
             </span>
@@ -150,27 +167,28 @@ export default function AdminAnnouncements() {
                 <th className="py-3 px-6 whitespace-nowrap">No</th>
                 <th className="py-3 px-6 whitespace-nowrap">Judul Pengumuman</th>
                 <th className="py-3 px-6 whitespace-nowrap">Target Sasaran</th>
-                <th className="py-3 px-6 whitespace-nowrap">Isi Pengumuman</th>
+                <th className="py-3 px-6 min-w-[280px]">Isi Pengumuman</th>
                 <th className="py-3 px-6 text-center whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-400">Memuat data pengumuman...</td>
+                  <td colSpan={5} className="text-center py-8 text-gray-400">Memuat data pengumuman...</td>
                 </tr>
               ) : filteredAnnouncements.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-400">Tidak ada pengumuman ditemukan.</td>
+                  <td colSpan={5} className="text-center py-8 text-gray-400">Tidak ada pengumuman ditemukan.</td>
                 </tr>
               ) : (
                 filteredAnnouncements.map((item, index) => {
                   const title = item.Title || item.title || '-';
                   const target = item.TargetRole || item.target_role || 'Semua';
                   const content = item.Content || item.content || '-';
+                  const rowKey = item.ID !== undefined ? item.ID : (item.id || index);
 
                   return (
-                    <tr key={item.ID || item.id || index} className="hover:bg-gray-50/50 transition">
+                    <tr key={rowKey} className="hover:bg-gray-50/50 transition">
                       <td className="py-3.5 px-6 font-medium text-gray-400 whitespace-nowrap">{index + 1}</td>
                       <td className="py-3.5 px-6 font-bold text-gray-800 whitespace-nowrap">{title}</td>
                       <td className="py-3.5 px-6 whitespace-nowrap">
@@ -178,7 +196,7 @@ export default function AdminAnnouncements() {
                           {target}
                         </span>
                       </td>
-                      <td className="py-3.5 px-6 text-gray-500 max-w-xs truncate">{content}</td>
+                      <td className="py-3.5 px-6 text-gray-600 break-words">{content}</td>
                       <td className="py-3.5 px-6 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
                           <button 
@@ -189,7 +207,7 @@ export default function AdminAnnouncements() {
                             <Edit size={14} />
                           </button>
                           <button 
-                            onClick={() => handleDelete(item.ID || item.id)}
+                            onClick={() => handleDelete(item.ID !== undefined ? item.ID : item.id!)}
                             className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" 
                             title="Hapus"
                           >
@@ -206,7 +224,6 @@ export default function AdminAnnouncements() {
         </div>
       </div>
 
-      {/* Modal Tambah / Edit Pengumuman */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -248,7 +265,7 @@ export default function AdminAnnouncements() {
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Isi Pengumuman</label>
                 <textarea
-                  rows="4"
+                  rows={4}
                   required
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
@@ -256,6 +273,8 @@ export default function AdminAnnouncements() {
                   className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
                 />
               </div>
+
+              <FileDropzone files={attachmentFiles} onChange={setAttachmentFiles} label="Lampiran pengumuman" resourceType="announcements" resourceId={isEditMode ? currentId : null} />
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button

@@ -1,75 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BookOpen, Plus, Search, Trash2, Edit, X } from 'lucide-react';
+import FileDropzone from '../components/FileDropzone';
+import { responseRecordId, uploadAttachments } from '../lib/attachments';
 
-const mapelListDefault = [
-  "Matematika",
-  "Bahasa Indonesia",
-  "Bahasa Inggris",
-  "Pendidikan Agama",
-  "PPKn",
-  "Sejarah Indonesia",
-  "Pendidikan Jasmani, Olahraga, dan Kesehatan",
-  "Seni Budaya",
-  "IPAS",
-  "Projek Kreatif dan Kewirausahaan",
-  "Bimbingan Konseling",
-  "Pemrograman Web",
-  "Basis Data",
-  "Pemrograman Berorientasi Objek",
-  "Desain Grafis",
-  "Jaringan Komputer",
-  "Administrasi Sistem Jaringan",
-  "Marketing Digital",
-  "Manajemen Perkantoran",
-];
+interface Subject {
+  id?: number;
+  ID?: number;
+  name?: string;
+  Name?: string;
+  code?: string;
+  Code?: string;
+  description?: string;
+  Description?: string;
+  deskripsi?: string;
+}
 
 export default function AdminSubjects() {
-  const [subjects, setSubjects] = useState([]);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [search, setSearch] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // State Modal & Form
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [currentId, setCurrentId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ name: '', code: '', description: '' });
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
 
+  // Server (database) adalah sumber data utama
   const fetchSubjects = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/subjects', {
+      const response = await axios.get('/api/subjects', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       const resData = response.data;
-      let dbData = [];
+      let data: Subject[] = [];
       if (Array.isArray(resData)) {
-        dbData = resData;
+        data = resData;
       } else if (resData && Array.isArray(resData.data)) {
-        dbData = resData.data;
+        data = resData.data;
       }
-
-      const formattedDefault = mapelListDefault.map((m, idx) => ({
-        id: `default-${idx + 1}`,
-        name: m,
-        code: `MP-${101 + idx}`,
-        description: 'Mata pelajaran wajib dan kejuruan sekolah'
-      }));
-
-      const combined = [...dbData, ...formattedDefault.filter(def => !dbData.some(db => (db.Name || db.name)?.toLowerCase() === def.name.toLowerCase()))];
-      
-      setSubjects(combined);
-      setLoading(false);
+      setSubjects(data);
     } catch (err) {
-      console.error('Gagal mengambil data dari API, menggunakan list default:', err);
-      const defaultData = mapelListDefault.map((m, idx) => ({
-        id: `default-${idx + 1}`,
-        name: m,
-        code: `MP-${101 + idx}`,
-        description: 'Mata pelajaran wajib dan kejuruan sekolah'
-      }));
-      setSubjects(defaultData);
+      console.error('Gagal mengambil data mata pelajaran:', err);
+      setSubjects([]);
+    } finally {
       setLoading(false);
     }
   };
@@ -80,22 +57,27 @@ export default function AdminSubjects() {
 
   const handleOpenAdd = () => {
     setIsEditMode(false);
+    setCurrentId(null);
     setFormData({ name: '', code: '', description: '' });
+    setAttachmentFiles([]);
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (subject) => {
+  const handleOpenEdit = (subject: Subject) => {
     setIsEditMode(true);
-    setCurrentId(subject.ID || subject.id);
+    const targetId = subject.ID !== undefined ? subject.ID : subject.id!;
+    setCurrentId(targetId);
+
     setFormData({
       name: subject.Name || subject.name || '',
       code: subject.Code || subject.code || '',
       description: subject.Description || subject.description || subject.deskripsi || ''
     });
+    setAttachmentFiles([]);
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
@@ -103,58 +85,35 @@ export default function AdminSubjects() {
 
       const payload = {
         name: formData.name,
-        Name: formData.name,
         code: formData.code,
-        Code: formData.code,
-        description: formData.description,
-        Description: formData.description
+        description: formData.description
       };
 
-      if (isEditMode) {
-        if (typeof currentId === 'string' && currentId.startsWith('default-')) {
-          setSubjects(subjects.map(s => (s.id === currentId ? { ...s, name: formData.name, code: formData.code, description: formData.description } : s)));
-        } else {
-          await axios.put(`http://localhost:8080/api/subjects/${currentId}`, payload, { headers });
-          fetchSubjects();
-        }
-      } else {
-        await axios.post('http://localhost:8080/api/subjects', payload, { headers });
-        fetchSubjects();
-      }
+      let subjectId = currentId;
+      if (isEditMode) await axios.put(`/api/subjects/${currentId}`, payload, { headers });
+      else subjectId = responseRecordId(await axios.post('/api/subjects', payload, { headers }));
+      if (subjectId) await uploadAttachments('subjects', subjectId, attachmentFiles, headers);
 
       setIsModalOpen(false);
-    } catch (err) {
+      fetchSubjects();
+    } catch (err: any) {
       console.error('Gagal menyimpan data mata pelajaran:', err);
-      if (!isEditMode) {
-        const newSub = {
-          id: Date.now(),
-          name: formData.name,
-          code: formData.code,
-          description: formData.description || 'Mata pelajaran tambahan sekolah'
-        };
-        setSubjects([newSub, ...subjects]);
-      } else {
-        setSubjects(subjects.map(s => (s.id === currentId || s.ID === currentId) ? { ...s, name: formData.name, code: formData.code, description: formData.description } : s));
-      }
-      setIsModalOpen(false);
+      const errMsg = err.response?.data?.error || 'Terjadi kesalahan saat menyimpan mata pelajaran.';
+      alert(errMsg);
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus mata pelajaran ini?')) return;
     try {
       const token = localStorage.getItem('token');
-      if (typeof id === 'string' && id.startsWith('default-')) {
-        setSubjects(subjects.filter(s => s.id !== id));
-        return;
-      }
-      await axios.delete(`http://localhost:8080/api/subjects/${id}`, {
+      await axios.delete(`/api/subjects/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchSubjects();
     } catch (err) {
-      console.error('Gagal menghapus dari server, menghapus secara lokal:', err);
-      setSubjects(subjects.filter(s => (s.ID || s.id) !== id));
+      console.error('Gagal menghapus mata pelajaran:', err);
+      alert('Gagal menghapus data mata pelajaran.');
     }
   };
 
@@ -166,10 +125,10 @@ export default function AdminSubjects() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Daftar Mata Pelajaran</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Kelola kurikulum dan daftar mata pelajaran sekolah.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Kelola kurikulum dan daftar mata pelajaran sekolah (TypeScript).</p>
         </div>
         <button 
           onClick={handleOpenAdd}
@@ -180,8 +139,8 @@ export default function AdminSubjects() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <div className="relative w-72">
+        <div className="p-4 border-b border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full max-w-xs">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
               <Search size={16} />
             </span>
@@ -210,21 +169,21 @@ export default function AdminSubjects() {
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-400">Memuat data mata pelajaran...</td>
+                  <td colSpan={5} className="text-center py-8 text-gray-400">Memuat data mata pelajaran...</td>
                 </tr>
               ) : filteredSubjects.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-400">Tidak ada data mata pelajaran ditemukan.</td>
+                  <td colSpan={5} className="text-center py-8 text-gray-400">Tidak ada data mata pelajaran ditemukan.</td>
                 </tr>
               ) : (
                 filteredSubjects.map((sub, index) => {
                   const subName = sub.Name || sub.name || '-';
                   const subCode = sub.Code || sub.code || '-';
-                  // Menangani berbagai format penulisan field deskripsi dari backend
-                  const subDesc = sub.Description || sub.description || sub.deskripsi || 'Mata pelajaran sekolah';
+                  const subDesc = sub.Description || sub.description || sub.deskripsi || '-';
+                  const rowKey = sub.ID !== undefined ? sub.ID : (sub.id || index);
 
                   return (
-                    <tr key={sub.ID || sub.id || index} className="hover:bg-gray-50/50 transition">
+                    <tr key={rowKey} className="hover:bg-gray-50/50 transition">
                       <td className="py-3.5 px-6 font-medium text-gray-400 whitespace-nowrap">{index + 1}</td>
                       <td className="py-3.5 px-6 font-bold text-gray-800 whitespace-nowrap">{subName}</td>
                       <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">{subCode}</td>
@@ -239,7 +198,7 @@ export default function AdminSubjects() {
                             <Edit size={14} />
                           </button>
                           <button 
-                            onClick={() => handleDelete(sub.ID || sub.id)}
+                            onClick={() => handleDelete(sub.ID !== undefined ? sub.ID : sub.id!)}
                             className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" 
                             title="Hapus"
                           >
@@ -256,7 +215,6 @@ export default function AdminSubjects() {
         </div>
       </div>
 
-      {/* Modal Tambah / Edit Mapel */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -297,13 +255,15 @@ export default function AdminSubjects() {
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Deskripsi</label>
                 <textarea
-                  rows="3"
+                  rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Keterangan singkat mata pelajaran..."
                   className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
                 />
               </div>
+
+              <FileDropzone files={attachmentFiles} onChange={setAttachmentFiles} label="Lampiran mata pelajaran" resourceType="subjects" resourceId={isEditMode ? currentId : null} />
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,7 @@ func main() {
 		&models.Teacher{},
 		&models.Student{},
 		&models.ClassSubject{},
+		&models.ClassSchedule{},
 		&models.TeacherSubject{},
 		&models.Material{},
 		&models.Assignment{},
@@ -34,8 +36,13 @@ func main() {
 		&models.ExamAnswer{},
 		&models.Grade{},
 		&models.Announcement{},
+		&models.ClassDiscussion{},
+		&models.ClassAttendance{},
+		&models.ClassroomEvent{},
+		&models.HomeroomNote{},
 		&models.Notification{},
 		&models.AcademicEvent{},
+		&models.Attachment{},
 	)
 	if err != nil {
 		log.Fatalf("Gagal melakukan AutoMigrate: %v", err)
@@ -45,14 +52,17 @@ func main() {
 	// 3. Jalankan Seeder
 	seed.SeedEducationLevels()
 	seed.SeedClasses()
-	seed.SeedUsers() // Seeder user akan membuat admin dengan password ter-hash
+	seed.SeedSubjects()
+	seed.SeedCalendars()
+	seed.SeedUsers()
+	seed.SeedClassScheduleSource()
+	seed.ResolveUnambiguousScheduleSubjects()
 
 	// 4. Setup Gin Server
 	router := gin.Default()
 
-	// Konfigurasi CORS agar diizinkan diakses oleh Frontend (Vite)
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowOrigins:     []string{envOrDefault("FRONTEND_URL", "http://localhost:5173")},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -61,15 +71,35 @@ func main() {
 	// Daftarkan routes
 	routes.AuthRoutes(router)
 	routes.UserRoutes(router)
+	routes.DashboardRoutes(router)
+	routes.SuperAdminRoutes(router)
 	routes.TeacherRoutes(router)
+	routes.TeacherSelfRoutes(router)
 	routes.StudentRoutes(router)
+	routes.StudentPortalRoutes(router)
+	routes.LeadershipRoutes(router)
 	routes.ClassRoutes(router)
+	routes.EducationLevelRoutes(router)
 	routes.SubjectRoutes(router)
 	routes.MaterialRoutes(router)
 	routes.AssignmentRoutes(router)
 	routes.SubmissionRoutes(router)
+	routes.AnnouncementRoutes(router)
+	routes.ClassroomRoutes(router)
+	routes.CalendarRoutes(router)
+	routes.TeachingAssignmentRoutes(router)
+	routes.AttachmentRoutes(router)
 
-	// Jalankan server
-	log.Println("Server berjalan di http://localhost:8080")
-	router.Run(":8080")
+	port := envOrDefault("PORT", "8080")
+	log.Printf("Server berjalan di port %s", port)
+	if err := router.Run("0.0.0.0:" + port); err != nil {
+		log.Fatalf("Gagal menjalankan server: %v", err)
+	}
+}
+
+func envOrDefault(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
 }
